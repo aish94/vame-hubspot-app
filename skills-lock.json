@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "skills": {
+    "wds-docs": {
+      "source": "wix/skills",
+      "sourceType": "github",
+      "computedHash": "459c543957d665bf0850c52f2983baae26c63c5a8a62627acf70a26b70f64302"
+    },
+    "wix-cli-app-validation": {
+      "source": "wix/skills",
+      "sourceType": "github",
+      "computedHash": "5142953615045595cfcc6d910091388d0e3f34ea4247ec727190f30db7245246"
+    },
+    "wix-cli-backend-api": {
+      "source": "wix/skills",
+      "sourceType": "github",
+      "computedHash": "2560a467cc9743b04e206733f4d45073b940fceb5e062e9ccbca14fb5ba2a8f0"
+    },
+    "wix-cli-backend-event": {
+      "source": "wix/skills",
+      "sourceType": "github",
+      "computedHash": "a0a45f2055dfb43ac87b11fdcf5f5d9835c1907f569908326048ecf8fb1353ed"
+    },
+    "wix-cli-dashboard-menu-plugin": {
+      "source": "wix/skills",
+      "sourceType": "github",
+      "computedHash": "6d987ab29e62229329e01301a7ba383430694f0ee4f3adceb22cc5ed46fa9b9b"
+    },
+    "wix-cli-dashboard-modal": {
+      "source": "wix/skills",
+      "sourceType": "github",
+      "computedHash": "34b2266550b18d8f1fe9c6692266bad1f99d70bd5ddd4e1c7b736c29800e8157"
+    },
+    "wix-cli-dashboard-page": {
+      "source": "wix/skills",
+      "sourceType": "github",
+      "computedHash": "a2ed6bc6fe585809bd5ef61fd0ddd15becaffacf3ecd149155b2170618d28265"
+    },
+    "wix-cli-dashboard-plugin": {
+      "source": "wix/skills",
+      "sourceType": "github",
+      "computedHash": "87c74fe240267063b932f8bcbc7933a5fd663cab39b0833298b16eb34019180c"
+    },
+    "wix-cli-data-collection": {
+      "source": "wix/skills",
+      "sourceType": "github",
+      "computedHash": "47dc095ef58fed2d98bd4bda6e1a6a11764b3a01949386e74accdb81ada1c0c7"
+    },
+    "wix-cli-embedded-script": {
+      "source": "wix/skills",
+      "sourceType": "github",
+      "computedHash": "525c3c05efbb6083f58d874f71057e4ef48054375fb10190eb8fa3d8f3dafcf7"
+    },
+    "wix-cli-extension-registration": {
+      "source": "wix/skills",
+      "sourceType": "github",
+      "computedHash": "a2a9500fb75280a039cd133d1d5a0b4021f4714b74b1c3cdc272830e6dde1788"
+    },
+    "wix-cli-orchestrator": {
+      "source": "wix/skills",
+      "sourceType": "github",
+      "computedHash": "7695af641a29c53e2232a9f8dedd1f2c24b7dbcddbc6a30aa6ea9b012059e150"
+    },
+    "wix-cli-service-plugin": {
+      "source": "wix/skills",
+      "sourceType": "github",
+      "computedHash": "c47b065cb272aaceedcc9c966a74387fb414ef70af2a4998a220dd39f1339ddf"
+    },
+    "wix-cli-site-component": {
+      "source": "wix/skills",
+      "sourceType": "github",
+      "computedHash": "2786172f1d029476b4c0045a89219684e0ab37e3a8048731ab93d75984912244"
+    },
+    "wix-cli-site-plugin": {
+      "source": "wix/skills",
+      "sourceType": "github",
+      "computedHash": "4f16903961e6693829289396ec787cf718ae170cf8307c1b50ec7650b0512888"
+    },
+    "wix-cli-site-widget": {
+      "source": "wix/skills",
+      "sourceType": "github",
+      "computedHash": "86c24c596b82d8f1f208232538d98f2a1ee623892d17b7dfb8eec553e9d4bcf0"
+    },
+    "wix-stores-versioning": {
+      "source": "wix/skills",
+      "sourceType": "github",
+      "computedHash": "9fb67f37cb7ca8dc23148683d71407d2eb63a56f1db38e5f159e9433711a594a"
+    }
+  }
+}

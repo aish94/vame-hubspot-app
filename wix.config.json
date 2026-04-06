@@ -1,0 +1,5 @@
+{
+  "$schema": "https://dev.wix.com/wix-cli/schemas/wix-config.json",
+  "appId": "eeb839d9-3c7e-48cb-8e0e-d9ff40ac8628",
+  "projectId": "vame-hubspot-app"
+}
