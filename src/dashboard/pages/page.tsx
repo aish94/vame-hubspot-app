@@ -22,13 +22,11 @@ const Index: FC = () => {
           actionsBar={
             <Button
               onClick={() => {
-                dashboard.showToast({
-                  message: 'Your first toast message!',
-                });
-              }}
+                dashboard.openModal('b6a34a8c-1474-4b80-86bb-398e380589cb')}
+              }
               prefixIcon={<Icons.GetStarted />}
             >
-              Show a toast
+              Open Modal
             </Button>
           }
         />
