@@ -280,6 +280,108 @@ const handleApiFormEmbed = async (res, formId) => {
   }
 };
 
+const createHubSpotContact = (accessToken, contactData) => {
+  return new Promise((resolve, reject) => {
+    const properties = [];
+    
+    if (contactData.email) {
+      properties.push({ property: 'email', value: contactData.email });
+    }
+    if (contactData.firstname) {
+      properties.push({ property: 'firstname', value: contactData.firstname });
+    }
+    if (contactData.lastname) {
+      properties.push({ property: 'lastname', value: contactData.lastname });
+    }
+    if (contactData.phone) {
+      properties.push({ property: 'phone', value: contactData.phone });
+    }
+    if (contactData.message) {
+      properties.push({ property: 'message', value: contactData.message });
+    }
+
+    const body = JSON.stringify({ properties });
+
+    const req = https.request(
+      {
+        hostname: 'api.hubapi.com',
+        path: '/crm/v3/objects/contacts',
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(body),
+        },
+      },
+      (res) => {
+        let data = '';
+        res.on('data', (chunk) => {
+          data += chunk;
+        });
+        res.on('end', () => {
+          try {
+            const json = JSON.parse(data);
+            if (res.statusCode >= 200 && res.statusCode < 300) {
+              resolve(json);
+            } else {
+              reject(new Error(`HubSpot contact creation failed: ${res.statusCode}: ${data}`));
+            }
+          } catch (error) {
+            reject(error);
+          }
+        });
+      }
+    );
+
+    req.on('error', (err) => reject(err));
+    req.write(body);
+    req.end();
+  });
+};
+
+const handleWebhookFormSubmission = async (req, res) => {
+  if (req.method !== 'POST') {
+    res.writeHead(405, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ error: 'Method not allowed' }));
+  }
+
+  if (!tokenPayload) {
+    return sendJson(res, 401, { error: 'Not authenticated with HubSpot' });
+  }
+
+  let body = '';
+  req.on('data', (chunk) => {
+    body += chunk.toString();
+  });
+
+  req.on('end', async () => {
+    try {
+      const formData = JSON.parse(body);
+      console.log('Form submission received:', formData);
+
+      const contactData = {
+        email: formData.email || '',
+        firstname: formData.firstname || formData.first_name || '',
+        lastname: formData.lastname || formData.last_name || '',
+        phone: formData.phone || '',
+        message: formData.message || formData.comments || '',
+      };
+
+      const result = await createHubSpotContact(tokenPayload.access_token, contactData);
+      console.log('Contact created in HubSpot:', result);
+
+      return sendJson(res, 200, {
+        success: true,
+        message: 'Contact created in HubSpot',
+        contactId: result.id,
+      });
+    } catch (error) {
+      console.error('Form submission error:', error);
+      return sendJson(res, 500, { error: error.message });
+    }
+  });
+};
+
 const requestHandler = async (req, res) => {
   const fullUrl = new URL(req.url, `http://${req.headers.host}`);
 
@@ -304,6 +406,10 @@ const requestHandler = async (req, res) => {
     if (formId) {
       return handleApiFormEmbed(res, formId);
     }
+  }
+
+  if (fullUrl.pathname === '/webhook/form-submission') {
+    return handleWebhookFormSubmission(req, res);
   }
 
   res.writeHead(404, { 'Content-Type': 'text/plain' });

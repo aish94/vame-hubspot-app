@@ -1,147 +1,101 @@
-import React, { type FC, useState, useEffect } from 'react';
+import React, { type FC, useEffect } from 'react';
 import { dashboard } from '@wix/dashboard';
 import {
   WixDesignSystemProvider,
-  Text,
   Box,
   CustomModalLayout,
-  Button,
-  Skeleton,
 } from '@wix/design-system';
 import '@wix/design-system/styles.global.css';
 import { width, height, title } from './modal.json';
-
-interface Form {
-  id: string;
-  name: string;
-  submitButtonText?: string;
-}
+import { WIX_FORM_URL, WEBHOOK_URL } from '../../../config';
 
 const Modal: FC = () => {
-  const [isAuthed, setIsAuthed] = useState(false);
-  const [forms, setForms] = useState<Form[]>([]);
-  const [selectedFormId, setSelectedFormId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
   useEffect(() => {
-    const checkAuthStatus = async () => {
+    const submitFormToHubSpot = async (formData: any) => {
       try {
-        const response = await fetch('http://localhost:3001/auth/hubspot/status');
-        const data = await response.json();
-        if (data.connected) {
-          setIsAuthed(true);
-          fetchForms();
+        console.log('Sending form data to HubSpot:', formData);
+
+        const response = await fetch(WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          console.log('✅ Contact created in HubSpot successfully');
+          console.log('Contact ID:', result.contactId);
+        } else {
+          console.error('❌ Failed to create contact:', result.error);
         }
-      } catch (err) {
-        console.error('Auth status check error:', err);
+      } catch (error) {
+        console.error('❌ Error sending form data to HubSpot:', error);
       }
     };
 
-    const timer = setInterval(checkAuthStatus, 2000);
-    return () => clearInterval(timer);
+    const handleMessage = (event: MessageEvent) => {
+      const messageData = event.data;
+
+      console.log('Message received:', messageData);
+
+      if (typeof messageData === 'object' && messageData !== null) {
+        if (
+          messageData.type === 'form-submitted' ||
+          messageData.event === 'form-submitted' ||
+          messageData.status === 'success' ||
+          messageData.success === true ||
+          messageData.formSubmitted === true
+        ) {
+          console.log('Form submission detected');
+          const formToSubmit = messageData.payload || messageData.data || messageData;
+          submitFormToHubSpot(formToSubmit);
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+
+    const monitorIframe = () => {
+      const iframeElement = document.querySelector('iframe[title="Wix Form"]') as HTMLIFrameElement;
+
+      if (iframeElement && iframeElement.contentWindow) {
+        iframeElement.contentWindow.addEventListener('message', handleMessage);
+      }
+    };
+
+    const timeout = setTimeout(monitorIframe, 1000);
+
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener('message', handleMessage);
+    };
   }, []);
 
-  const fetchForms = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch('http://localhost:3001/api/hubspot/forms');
-      const data = await response.json();
-      if (data.forms) {
-        setForms(data.forms);
-      }
-    } catch (err) {
-      setError('Failed to fetch HubSpot forms');
-      console.error('Fetch forms error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const handleConnect = () => {
-    const popup = window.open(
-      'http://localhost:3001/auth/hubspot/start',
-      'HubSpot Auth',
-      'width=500,height=600'
-    );
-
-    const timer = setInterval(() => {
-      if (popup && popup.closed) {
-        clearInterval(timer);
-        setTimeout(() => {
-          setIsAuthed(true);
-          fetchForms();
-        }, 1000);
-      }
-    }, 500);
-  };
-
-  const handleSelectForm = (formId: string) => {
-    setSelectedFormId(formId);
-  };
-
-  const handleEmbedForm = async () => {
-    if (!selectedFormId) return;
-
-    try {
-      const response = await fetch(
-        `http://localhost:3001/api/hubspot/forms/${selectedFormId}/embed`
-      );
-      const data = await response.json();
-      if (data.embedCode) {
-        console.log('Form embedded:', data.embedCode);
-        dashboard.closeModal();
-      }
-    } catch (err) {
-      setError('Failed to embed form');
-      console.error('Embed form error:', err);
-    }
-  };
 
   return (
     <WixDesignSystemProvider features={{ newColorsBranding: true }}>
       <CustomModalLayout
         width={width}
         maxHeight={height}
-        primaryButtonText={isAuthed && selectedFormId ? 'Embed Form' : 'Connect HubSpot'}
-        secondaryButtonText="Cancel"
-        primaryButtonOnClick={isAuthed && selectedFormId ? handleEmbedForm : handleConnect}
-        secondaryButtonOnClick={() => dashboard.closeModal()}
+        primaryButtonText="Close"
+        secondaryButtonText={undefined}
+        primaryButtonOnClick={() => dashboard.closeModal()}
         title={title}
-        subtitle="Connect and embed HubSpot forms"
+        subtitle="Contact us"
         content={
-          <Box direction="vertical" align="left" gap="20px" padding="20px">
-            {!isAuthed ? (
-              <Box direction="vertical" align="center" gap="10px">
-                <Text>Click "Connect HubSpot" to authenticate with your HubSpot account</Text>
-              </Box>
-            ) : loading ? (
-              <Skeleton />
-            ) : error ? (
-              <Text color="red">{error}</Text>
-            ) : forms.length === 0 ? (
-              <Text>No forms found in your HubSpot account</Text>
-            ) : (
-              <Box direction="vertical" gap="12px">
-                <Text tagName="h3">Select a form to embed:</Text>
-                {forms.map((form) => (
-                  <Box
-                    key={form.id}
-                    padding="12px"
-                    border="1px solid #ccc"
-                    borderRadius="4px"
-                    onClick={() => handleSelectForm(form.id)}
-                    style={{
-                      cursor: 'pointer',
-                      backgroundColor: selectedFormId === form.id ? '#f0f0f0' : 'transparent',
-                      borderColor: selectedFormId === form.id ? '#0066ff' : '#ccc',
-                    }}
-                  >
-                    <Text>{form.name}</Text>
-                  </Box>
-                ))}
-              </Box>
-            )}
+          <Box direction="vertical" align="center" gap="20px" padding="0">
+            <iframe
+              src={WIX_FORM_URL}
+              title="Wix Form"
+              style={{
+                width: '100%',
+                height: '600px',
+                border: 'none',
+                borderRadius: '4px',
+              }}
+            />
           </Box>
         }
       />
