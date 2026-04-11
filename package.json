@@ -26,6 +26,7 @@
     "preview": "wix app preview",
     "generate": "wix app generate",
     "logs": "wix app logs",
+    "start": "node server/oauth-server.js",
     "serve:oauth": "node server/oauth-server.js",
     "typecheck": "tsc --noEmit"
   }
