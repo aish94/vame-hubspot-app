@@ -6,7 +6,7 @@ const isDevelopment = import.meta.env.DEV;
 
 export const API_BASE_URL = isDevelopment 
   ? 'http://localhost:3001'
-  : (import.meta.env.VITE_API_URL || 'https://your-railway-domain.railway.app');
+  : (import.meta.env.VITE_API_URL || 'https://vame-hubspot-app.up.railway.app/auth/hubspot/start');
 
 export const WIX_FORM_URL = 'https://devcentertesting.wixforms.com/f/7448433885764912741';
 
