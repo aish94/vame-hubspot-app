@@ -833,11 +833,13 @@ const generateFormEmbed = (formId) => {
   return script;
 };
 
-const handleStart = (req, res) => {
+const handleStart = (req, res, fullUrl) => {
   const state = crypto.randomBytes(16).toString('hex');
   storedStates.add(state);
-  const redirect = buildHubSpotAuthorizeUrl(state);
-  log.info('Initiating HubSpot OAuth flow');
+  const requestedScope = fullUrl?.searchParams?.get('scope') || '';
+  const scopeToUse = normalizeHubSpotScopes(requestedScope || HUBSPOT_SCOPES);
+  const redirect = buildHubSpotAuthorizeUrl(state, scopeToUse);
+  log.info('Initiating HubSpot OAuth flow', { scope: scopeToUse });
   res.writeHead(302, { Location: redirect });
   res.end();
 };
@@ -1149,6 +1151,21 @@ const handleWebhookFormSubmission = async (req, res) => {
     });
   } catch (error) {
     log.error('Form submission error', { message: error.message });
+    if (/Not authenticated with HubSpot/i.test(error.message)) {
+      return sendJson(res, 401, {
+        error: error.message,
+        requiresAuth: true,
+        connectUrl: '/auth/hubspot/start',
+      });
+    }
+    if (/MISSING_SCOPES|required scopes/i.test(error.message)) {
+      return sendJson(res, 403, {
+        error: 'HubSpot app is connected, but missing required write scopes for contact submission.',
+        details: error.message,
+        requiresReauth: true,
+        hint: 'Enable contacts write + sensitive/highly-sensitive write scopes in your HubSpot app, then reconnect.',
+      });
+    }
     return sendJson(res, 500, { error: error.message });
   }
 };
@@ -1165,7 +1182,7 @@ const requestHandler = async (req, res) => {
   }
 
   if (fullUrl.pathname === '/auth/hubspot/start') {
-    return handleStart(req, res);
+    return handleStart(req, res, fullUrl);
   }
 
   if (fullUrl.pathname === '/auth/hubspot/callback') {

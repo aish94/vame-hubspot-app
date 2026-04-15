@@ -1,4 +1,4 @@
-import React, { type FC, useState } from 'react';
+import React, { type FC, useEffect, useState } from 'react';
 import { dashboard } from '@wix/dashboard';
 import {
   WixDesignSystemProvider,
@@ -6,10 +6,11 @@ import {
   CustomModalLayout,
   Text,
   Input,
+  Button,
 } from '@wix/design-system';
 import '@wix/design-system/styles.global.css';
 import { width, height, title } from './modal.json';
-import { WEBHOOK_URL } from '../../../config';
+import { WEBHOOK_URL, CONNECT_URL, STATUS_URL } from '../../../config';
 
 interface ContactForm {
   firstName: string;
@@ -53,12 +54,59 @@ const Modal: FC = () => {
   });
   const [status, setStatus] = useState<FormStatus>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [requiresAuth, setRequiresAuth] = useState(false);
+  const [isHubSpotConnected, setIsHubSpotConnected] = useState<boolean | null>(null);
+
+  const refreshConnectionStatus = async () => {
+    try {
+      const r = await fetch(STATUS_URL);
+      const data = await r.json();
+      const connected = Boolean(data?.connected && !data?.tokenExpired);
+      setIsHubSpotConnected(connected);
+      return connected;
+    } catch {
+      setIsHubSpotConnected(null);
+      return null;
+    }
+  };
+
+  const openConnectAndPollStatus = () => {
+    window.open(`${CONNECT_URL}?t=${Date.now()}`, '_blank', 'noopener,noreferrer');
+
+    // Poll briefly so user does not need to close/reopen modal after connecting.
+    let attempts = 0;
+    const maxAttempts = 30; // ~60s
+    const timer = window.setInterval(async () => {
+      attempts += 1;
+      const connected = await refreshConnectionStatus();
+      if (connected) {
+        setRequiresAuth(false);
+        setErrorMessage('HubSpot connected successfully. You can now submit the form.');
+        window.clearInterval(timer);
+      } else if (attempts >= maxAttempts) {
+        window.clearInterval(timer);
+      }
+    }, 2000);
+  };
+
+  useEffect(() => {
+    refreshConnectionStatus();
+  }, []);
 
   const set = (field: keyof ContactForm) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
   const handleSubmit = async () => {
+    // Always re-check current connection status in case user connected in another tab.
+    const latestConnection = await refreshConnectionStatus();
+    if (latestConnection === false) {
+      setStatus('error');
+      setRequiresAuth(true);
+      setErrorMessage('HubSpot is not connected. Please connect first, then submit the form.');
+      return;
+    }
+
     if (!form.email.trim()) {
       setErrorMessage('Email address is required.');
       return;
@@ -70,6 +118,7 @@ const Modal: FC = () => {
 
     setStatus('submitting');
     setErrorMessage('');
+    setRequiresAuth(false);
 
     const attribution = captureAttribution();
     const controller = new AbortController();
@@ -96,6 +145,8 @@ const Modal: FC = () => {
         setStatus('success');
       } else {
         setStatus('error');
+        const authRequired = response.status === 401 || Boolean((result as any).requiresAuth);
+        setRequiresAuth(authRequired);
         setErrorMessage((result as any).error || 'Submission failed. Please try again.');
       }
     } catch (err: any) {
@@ -132,6 +183,30 @@ const Modal: FC = () => {
             </Box>
           ) : (
             <Box direction="vertical" gap="16px" padding="8px 0">
+              <Box
+                padding="12px"
+                style={{
+                  backgroundColor: '#F5F8FF',
+                  borderRadius: '4px',
+                  border: '1px solid #D3E3FD',
+                }}
+              >
+                <Box direction="horizontal" verticalAlign="middle" gap="12px">
+                  <Text size="small" weight="normal">
+                    {isHubSpotConnected === true
+                      ? 'HubSpot status: Connected'
+                      : isHubSpotConnected === false
+                        ? 'HubSpot status: Not connected'
+                        : 'HubSpot status: Checking...'}
+                  </Text>
+                  {isHubSpotConnected !== true && (
+                    <Button size="small" onClick={openConnectAndPollStatus}>
+                      Connect HubSpot
+                    </Button>
+                  )}
+                </Box>
+              </Box>
+
               {status === 'error' && errorMessage && (
                 <Box
                   padding="12px"
@@ -141,7 +216,17 @@ const Modal: FC = () => {
                     border: '1px solid #FFB74D',
                   }}
                 >
-                  <Text size="small">⚠ {errorMessage}</Text>
+                  <Box direction="vertical" gap="8px" align="left">
+                    <Text size="small">⚠ {errorMessage}</Text>
+                    {requiresAuth && (
+                      <Button
+                        size="small"
+                        onClick={openConnectAndPollStatus}
+                      >
+                        Connect HubSpot
+                      </Button>
+                    )}
+                  </Box>
                 </Box>
               )}
 
