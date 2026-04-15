@@ -132,7 +132,6 @@ const Modal: FC = () => {
           firstname: form.firstName.trim(),
           lastname:  form.lastName.trim(),
           email:     form.email.trim().toLowerCase(),
-          phone:     form.phone.trim(),
           company:   form.company.trim(),
           message:   form.message.trim(),
           attribution,
@@ -247,10 +246,10 @@ const Modal: FC = () => {
                 <Input value={form.email} onChange={set('email')} placeholder="your@email.com" type="email" disabled={isSubmitting} />
               </Box>
 
-              <Box direction="vertical" gap="4px">
+              {/* <Box direction="vertical" gap="4px">
                 <Text size="small" weight="bold">Phone</Text>
                 <Input value={form.phone} onChange={set('phone')} placeholder="+1 (555) 000-0000" disabled={isSubmitting} />
-              </Box>
+              </Box> */}
 
               <Box direction="vertical" gap="4px">
                 <Text size="small" weight="bold">Company</Text>

@@ -1004,20 +1004,22 @@ const ensureHubSpotProperty = async (accessToken, name, label) => {
         description: 'Auto-created by Vame-HubSpotApp for UTM attribution tracking',
       },
     });
+    return true;
   } catch (error) {
     // 409 = property already exists — safe to ignore
-    if (!error.message.includes('409') && !error.message.includes('already exists')) {
-      log.warn(`Could not ensure HubSpot property "${name}"`, { message: error.message });
-    }
+    if (error.message.includes('409') || error.message.includes('already exists')) return true;
+    log.warn(`Could not ensure HubSpot property "${name}"`, { message: error.message });
+    return false;
   }
 };
 
 const ensureUtmProperties = async (accessToken) => {
-  if (_utmPropertiesEnsured) return;
-  await Promise.all(
+  if (_utmPropertiesEnsured) return true;
+  const results = await Promise.all(
     UTM_HUBSPOT_PROPERTIES.map(({ name, label }) => ensureHubSpotProperty(accessToken, name, label))
   );
-  _utmPropertiesEnsured = true;
+  _utmPropertiesEnsured = results.every(Boolean);
+  return _utmPropertiesEnsured;
 };
 
 const handleDisconnect = (req, res) => {
@@ -1108,7 +1110,8 @@ const handleWebhookFormSubmission = async (req, res) => {
     const formData = await parseJsonBody(req);
     const attribution = formData.attribution || {};
 
-    // Build HubSpot properties from submitted form fields
+    // Build HubSpot properties from submitted form fields.
+    // Keep this list to standard contact properties to avoid 400 invalid-property failures.
     const properties = {};
     if (formData.firstname || formData.first_name || formData.name) {
       properties.firstname = formData.firstname || formData.first_name || formData.name;
@@ -1117,23 +1120,24 @@ const handleWebhookFormSubmission = async (req, res) => {
       properties.lastname = formData.lastname || formData.last_name;
     }
     if (formData.email)   properties.email   = normalizeEmail(formData.email);
-    if (formData.phone)   properties.phone   = formData.phone;
     if (formData.company) properties.company = formData.company;
-    if (formData.message) properties.message = formData.message;
-
-    // UTM attribution — stored as custom HubSpot contact properties
-    // See UTM_HUBSPOT_PROPERTIES for the full list of custom properties created
-    if (attribution.utm_source)   properties.utm_source   = attribution.utm_source;
-    if (attribution.utm_medium)   properties.utm_medium   = attribution.utm_medium;
-    if (attribution.utm_campaign) properties.utm_campaign = attribution.utm_campaign;
-    if (attribution.utm_term)     properties.utm_term     = attribution.utm_term;
-    if (attribution.utm_content)  properties.utm_content  = attribution.utm_content;
-    if (attribution.source_url)   properties.lead_source_url = attribution.source_url;
-    if (attribution.referrer)     properties.lead_referrer   = attribution.referrer;
-    properties.last_form_submission_at = attribution.submitted_at || new Date().toISOString();
+    const utmProperties = {};
+    if (attribution.utm_source)   utmProperties.utm_source   = attribution.utm_source;
+    if (attribution.utm_medium)   utmProperties.utm_medium   = attribution.utm_medium;
+    if (attribution.utm_campaign) utmProperties.utm_campaign = attribution.utm_campaign;
+    if (attribution.utm_term)     utmProperties.utm_term     = attribution.utm_term;
+    if (attribution.utm_content)  utmProperties.utm_content  = attribution.utm_content;
+    if (attribution.source_url)   utmProperties.lead_source_url = attribution.source_url;
+    if (attribution.referrer)     utmProperties.lead_referrer   = attribution.referrer;
+    utmProperties.last_form_submission_at = attribution.submitted_at || new Date().toISOString();
 
     const token = await getValidToken();
-    await ensureUtmProperties(token.access_token);
+    const canUseUtmProperties = await ensureUtmProperties(token.access_token);
+    if (canUseUtmProperties) {
+      Object.assign(properties, utmProperties);
+    } else {
+      log.warn('Skipping UTM custom properties because they are not available in this HubSpot app/portal');
+    }
 
     const result = await upsertHubSpotContact({
       hubspotContactId: null,
