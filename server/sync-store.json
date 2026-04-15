@@ -1,0 +1,24 @@
+{
+  "config": {
+    "conflictRule": "last-updated-wins",
+    "prioritySource": "hubspot",
+    "mappings": [
+      {
+        "id": "default-email",
+        "wixField": "email",
+        "hubspotProperty": "email",
+        "syncDirection": "bidirectional",
+        "transform": "none"
+      },
+      {
+        "id": "mapping-1776121452724",
+        "wixField": "city",
+        "hubspotProperty": "city",
+        "syncDirection": "wix-to-hubspot",
+        "transform": "trim"
+      }
+    ]
+  },
+  "links": [],
+  "wixContacts": {}
+}
