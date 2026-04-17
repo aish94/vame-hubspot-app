@@ -5,9 +5,9 @@
     "mappings": [
       {
         "id": "default-email",
-        "wixField": "email",
-        "hubspotProperty": "email",
-        "syncDirection": "bidirectional",
+        "wixField": "name",
+        "hubspotProperty": "company",
+        "syncDirection": "wix-to-hubspot",
         "transform": "none"
       },
       {
